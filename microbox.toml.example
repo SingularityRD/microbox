@@ -1,0 +1,21 @@
+version = 1
+
+[sandbox]
+level = "safe"
+timeout = "5m"
+max_cpu = 1
+max_ram = "512m"
+max_disk = "1g"
+
+[network]
+allow = ["api.openai.com:443", "api.anthropic.com:443"]
+deny_all_other = true
+
+[filesystem]
+writable = [".", "/tmp"]
+readonly = []
+deny = ["/etc/passwd", "/proc", "/sys"]
+
+[environment]
+passthrough = ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "NODE_ENV"]
+deny = ["AWS_SECRET_*", "DATABASE_*"]

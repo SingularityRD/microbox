@@ -1,0 +1,11 @@
+[package]
+name = "microbox-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+microbox-policy = { path = "../microbox-policy" }
+thiserror.workspace = true
+

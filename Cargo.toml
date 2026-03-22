@@ -1,0 +1,30 @@
+[workspace]
+members = [
+    "crates/microbox-policy",
+    "crates/microbox-core",
+    "crates/microbox-backend",
+    "crates/microbox-cli",
+]
+resolver = "2"
+default-members = ["crates/microbox-cli"]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+license = "MIT"
+rust-version = "1.78"
+
+[workspace.dependencies]
+clap = { version = "4.5", features = ["derive"] }
+libc = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+toml = "0.8"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

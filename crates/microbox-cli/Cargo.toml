@@ -1,0 +1,20 @@
+[package]
+name = "microbox-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "microbox"
+path = "src/main.rs"
+
+[dependencies]
+clap.workspace = true
+microbox-backend = { path = "../microbox-backend" }
+microbox-core = { path = "../microbox-core" }
+microbox-policy = { path = "../microbox-policy" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+toml.workspace = true

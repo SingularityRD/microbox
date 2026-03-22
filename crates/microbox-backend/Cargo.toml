@@ -1,0 +1,13 @@
+[package]
+name = "microbox-backend"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+clap.workspace = true
+microbox-core = { path = "../microbox-core" }
+microbox-policy = { path = "../microbox-policy" }
+libc.workspace = true
+thiserror.workspace = true
