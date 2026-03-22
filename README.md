@@ -48,7 +48,7 @@ Network note:
 Supported platforms:
 - Linux: secure backend with the full hardening stack
 - macOS and Windows: compat backend for local execution, validation, and benchmarking
-- CI runs the shared contract on all three platforms
+- Local smoke tests keep the shared contract exercised across Linux, macOS, and Windows
 
 ## Run Code Directly
 
@@ -65,7 +65,7 @@ That example:
 
 MicroBox is built to fit agent-driven workflows without asking you to change the codebase first.
 
-Use these commands when you want structured output for an LLM agent, orchestrator, or CI bot:
+Use these commands when you want structured output for an LLM agent, orchestrator, or automation bot:
 
 ```bash
 cargo run -- doctor --format json
@@ -234,7 +234,7 @@ Benchmark reports:
 
 `microbox workspace`
 - Manages persistent workspaces with import, run, snapshot, and restore flows
-- Use `--format json` when an agent or CI system needs structured output
+- Use `--format json` when an agent or automation system needs structured output
 
 ## Release Workflow
 
@@ -246,6 +246,8 @@ Open-source release flow:
 4. `cargo run -- bench --profile all --iterations 100 --warmups 0 --format markdown --output microbox-benchmark.md echo benchmark`
 5. `cargo build --release`
 6. Tag a release as `v*` to produce OS-specific archives and SHA-256 checksums
+
+Automated CI/CD is paused for now because this repo is intentionally shipping without the hosted billing/control-plane layer that would back a managed pipeline.
 
 ## Benchmark Leaderboard
 
@@ -287,8 +289,7 @@ cargo run --release -- validate
 cargo run --release -- bench --peer-target auto --iterations 1 --warmups 0 --format text
 ```
 
-- Tag pushes that match `v*` produce release archives and SHA-256 checksum files for Linux, macOS, and Windows.
-- Manual `workflow_dispatch` runs build the same release artifacts without publishing a GitHub Release.
+- Release archives and SHA-256 checksum files are produced manually from tagged builds for Linux, macOS, and Windows while CI/CD is paused.
 
 ## Troubleshooting
 
