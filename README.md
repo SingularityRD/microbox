@@ -17,6 +17,7 @@ What ships today:
 - policy compiler and preset resolution
 - config file parsing
 - `microbox doctor` with policy resolution and readiness reporting
+- machine-readable `doctor` and `validate` output for agents and automation
 - backend selection: `auto`, `compat`, `secure`
 - cross-platform execution on Linux, macOS, and Windows via the compat backend
 - Linux secure backend with process-group cleanup, best-effort namespaces, Landlock confinement, seccomp hardening, cgroup delegation fallback, and outbound allowlists
@@ -57,6 +58,26 @@ That example:
 - prints a short status message
 - writes a file inside `.microbox-demo/`
 - gives new users a zero-setup way to see MicroBox execute real code in the sandbox
+
+## AI Agent Ready
+
+MicroBox is built to fit agent-driven workflows without asking you to change the codebase first.
+
+Use these commands when you want structured output for an LLM agent, orchestrator, or CI bot:
+
+```bash
+cargo run -- doctor --format json
+cargo run -- validate --format json
+cargo run -- run --preset ai-agent python examples/hello.py
+```
+
+What the `ai-agent` preset gives you:
+- explicit outbound access for OpenAI and Anthropic API endpoints
+- environment passthrough for common agent keys like `OPENAI_API_KEY` and `ANTHROPIC_API_KEY`
+- deny rules for common secret-heavy environments
+- a safe default workspace policy for coding agents
+
+If you are wiring MicroBox into an agent system, start with `doctor --format json`, then `validate --format json`, then run the actual command under `--preset ai-agent`.
 
 ## Philosophy
 
@@ -178,10 +199,12 @@ Benchmark reports:
 `microbox validate`
 - Resolves policy and config only
 - Use this before release or before changing policy defaults
+- `--format text|json` controls whether the output is human-readable or machine-readable
 
 `microbox doctor`
 - Reports backend readiness, peer availability, and policy summary
 - Useful for support, docs, and release notes
+- `--format text|json` controls whether the output is human-readable or machine-readable
 
 `microbox bench`
 - Measures startup overhead, shell roundtrips, and workspace writes
@@ -196,8 +219,6 @@ Open-source release flow:
 3. `cargo run -- bench --profile all --iterations 100 --warmups 0 --format markdown --output microbox-benchmark.md echo benchmark`
 4. `cargo build --release`
 5. Tag a release as `v*` to produce OS-specific archives and SHA-256 checksums
-
-Nightly benchmark artifacts are produced by GitHub Actions and uploaded as workflow artifacts.
 
 ## Benchmark Leaderboard
 

@@ -1,25 +1,121 @@
-use crate::{args::PolicyArgs, runner::prepare_context};
+use crate::{
+    args::{DiagnosticFormat, DoctorArgs, PolicyArgs},
+    runner::prepare_context,
+};
 use microbox_backend::default_backend;
+use serde::Serialize;
 use std::{env, path::Path, process::Command};
 
-pub fn render() -> String {
+#[derive(Debug, Serialize)]
+struct PeerAvailability {
+    docker: bool,
+    podman: bool,
+    bwrap: bool,
+    firejail: bool,
+    e2b: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct DoctorReport {
+    tool: String,
+    platform: String,
+    backend: String,
+    production_ready: bool,
+    secure_enforcement: bool,
+    config_found: bool,
+    policy_resolved: bool,
+    policy_summary: Option<Vec<String>>,
+    policy_error: Option<String>,
+    features: Vec<String>,
+    peer_targets: PeerAvailability,
+    e2b_mode: String,
+    notes: Vec<String>,
+    linux_support: String,
+}
+
+pub fn run(args: DoctorArgs) -> Result<i32, microbox_core::SandboxError> {
+    let report = build_report(&args.policy);
+    let rendered = match args.format {
+        DiagnosticFormat::Text => render_text(&report),
+        DiagnosticFormat::Json => render_json(&report)?,
+    };
+
+    println!("{rendered}");
+    Ok(0)
+}
+
+fn build_report(policy_args: &PolicyArgs) -> DoctorReport {
     let backend = default_backend();
     let capabilities = backend.capabilities();
-    let config_exists = Path::new("microbox.toml").exists();
+    let config_found = policy_config_exists(policy_args);
+    let policy_result = prepare_context(policy_args);
     let production_ready = capabilities.secure_enforcement && cfg!(target_os = "linux");
-    let policy_result = prepare_context(&PolicyArgs::default());
+    let policy_summary = policy_result
+        .as_ref()
+        .ok()
+        .map(|context| context.policy.summary_lines());
+    let policy_error = policy_result.as_ref().err().map(|error| error.to_string());
 
+    let mut features = vec![
+        "cli".to_string(),
+        "validate".to_string(),
+        "bench".to_string(),
+        "benchmark reports".to_string(),
+        "peer sandbox comparisons".to_string(),
+        "policy compiler".to_string(),
+        "preset resolution".to_string(),
+        "config discovery".to_string(),
+        "cross-platform compat backend".to_string(),
+        "Linux outbound allowlists".to_string(),
+        "machine-readable doctor output".to_string(),
+        "machine-readable validate output".to_string(),
+    ];
+    if cfg!(target_os = "linux") {
+        features.push("Linux secure backend".to_string());
+    }
+
+    let notes = capabilities.notes.clone();
+
+    DoctorReport {
+        tool: env!("CARGO_PKG_NAME").to_string(),
+        platform: format!("{}-{}", env::consts::OS, env::consts::ARCH),
+        backend: capabilities.name.to_string(),
+        production_ready,
+        secure_enforcement: capabilities.secure_enforcement,
+        config_found,
+        policy_resolved: policy_result.is_ok(),
+        policy_summary,
+        policy_error,
+        features,
+        peer_targets: PeerAvailability {
+            docker: container_runtime_ready("docker"),
+            podman: container_runtime_ready("podman"),
+            bwrap: cfg!(target_os = "linux") && binary_available("bwrap"),
+            firejail: cfg!(target_os = "linux") && binary_available("firejail"),
+            e2b: e2b_available(),
+        },
+        e2b_mode: e2b_mode().to_string(),
+        notes,
+        linux_support: if cfg!(target_os = "linux") {
+            "secure backend with namespaces, Landlock, seccomp, and cgroup best-effort".to_string()
+        } else {
+            "build on Linux for full sandbox enforcement".to_string()
+        },
+    }
+}
+
+fn render_text(report: &DoctorReport) -> String {
     let mut lines = vec![
-        format!("MicroBox doctor"),
-        format!("platform = {}-{}", env::consts::OS, env::consts::ARCH),
-        format!("backend = {}", capabilities.name),
+        "MicroBox doctor".to_string(),
+        format!("platform = {}", report.platform),
+        format!("backend = {}", report.backend),
         format!(
             "production_ready = {}",
-            if production_ready { "yes" } else { "no" }
+            if report.production_ready { "yes" } else { "no" }
         ),
         format!(
             "secure_enforcement = {}",
-            if capabilities.secure_enforcement {
+            if report.secure_enforcement {
                 "yes"
             } else {
                 "no"
@@ -27,60 +123,64 @@ pub fn render() -> String {
         ),
         format!(
             "config_found = {}",
-            if config_exists { "yes" } else { "no" }
+            if report.config_found { "yes" } else { "no" }
         ),
         format!(
             "policy_resolved = {}",
-            if policy_result.is_ok() { "yes" } else { "no" }
+            if report.policy_resolved { "yes" } else { "no" }
         ),
-        "features = cli, validate, bench, benchmark reports, peer sandbox comparisons, policy compiler, preset resolution, config discovery, cross-platform compat backend, Linux outbound allowlists"
-            .to_string(),
+        format!("features = {}", report.features.join(", ")),
     ];
 
-    if let Err(error) = policy_result {
+    if let Some(error) = &report.policy_error {
         lines.push(format!("policy_error = {}", error));
-    } else if let Ok(context) = &policy_result {
+    } else if let Some(summary) = &report.policy_summary {
         lines.push("policy_summary:".to_string());
-        for line in context.policy.summary_lines() {
+        for line in summary {
             lines.push(format!("  - {}", line));
         }
     }
 
     lines.push(format!(
         "peer_targets = docker:{}, podman:{}, bwrap:{}, firejail:{}, e2b:{}",
-        availability_flag(container_runtime_ready("docker")),
-        availability_flag(container_runtime_ready("podman")),
-        availability_flag(cfg!(target_os = "linux") && binary_available("bwrap")),
-        availability_flag(cfg!(target_os = "linux") && binary_available("firejail")),
-        availability_flag(e2b_available())
+        flag(report.peer_targets.docker),
+        flag(report.peer_targets.podman),
+        flag(report.peer_targets.bwrap),
+        flag(report.peer_targets.firejail),
+        flag(report.peer_targets.e2b)
     ));
-    lines.push(format!("e2b_mode = {}", e2b_mode()));
+    lines.push(format!("e2b_mode = {}", report.e2b_mode));
 
-    if !capabilities.notes.is_empty() {
+    if !report.notes.is_empty() {
         lines.push("notes:".to_string());
-        for note in capabilities.notes {
+        for note in &report.notes {
             lines.push(format!("  - {}", note));
         }
     }
 
-    if cfg!(target_os = "linux") {
-        lines.push(
-            "linux_support = secure backend with namespaces, Landlock, seccomp, and cgroup best-effort"
-                .to_string(),
-        );
-    } else {
-        lines.push("linux_support = build on Linux for full sandbox enforcement".to_string());
-    }
+    lines.push(format!("linux_support = {}", report.linux_support));
 
     lines.join("\n")
 }
 
-fn availability_flag(value: bool) -> &'static str {
+fn render_json(report: &DoctorReport) -> Result<String, microbox_core::SandboxError> {
+    serde_json::to_string_pretty(report)
+        .map_err(|error| microbox_core::SandboxError::LaunchFailed(error.to_string()))
+}
+
+fn flag(value: bool) -> &'static str {
     if value {
         "yes"
     } else {
         "no"
     }
+}
+
+fn policy_config_exists(args: &PolicyArgs) -> bool {
+    args.config
+        .as_ref()
+        .map(|path| path.exists())
+        .unwrap_or_else(|| Path::new("microbox.toml").exists())
 }
 
 fn binary_available(binary: &str) -> bool {

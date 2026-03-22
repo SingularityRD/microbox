@@ -24,7 +24,7 @@ pub enum Commands {
     /// Benchmark the selected backend and policy resolution path
     Bench(BenchArgs),
     /// Inspect platform and runtime readiness
-    Doctor,
+    Doctor(DoctorArgs),
 }
 
 #[derive(Debug, Args, Clone)]
@@ -106,6 +106,20 @@ pub struct RunArgs {
 pub struct ValidateArgs {
     #[command(flatten)]
     pub policy: PolicyArgs,
+
+    /// Output format for diagnostics
+    #[arg(long, value_enum, default_value_t = DiagnosticFormat::Text)]
+    pub format: DiagnosticFormat,
+}
+
+#[derive(Debug, Args, Clone)]
+pub struct DoctorArgs {
+    #[command(flatten)]
+    pub policy: PolicyArgs,
+
+    /// Output format for diagnostics
+    #[arg(long, value_enum, default_value_t = DiagnosticFormat::Text)]
+    pub format: DiagnosticFormat,
 }
 
 #[derive(Debug, Args, Clone)]
@@ -210,6 +224,12 @@ pub enum OutputFormat {
     Text,
     Json,
     Markdown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum DiagnosticFormat {
+    Text,
+    Json,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]

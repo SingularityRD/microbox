@@ -36,10 +36,13 @@ fn main() {
                 1
             }
         },
-        Commands::Doctor => {
-            println!("{}", doctor::render());
-            0
-        }
+        Commands::Doctor(args) => match doctor::run(args) {
+            Ok(code) => code,
+            Err(error) => {
+                eprintln!("microbox: {}", error);
+                1
+            }
+        },
     };
 
     std::process::exit(code);
