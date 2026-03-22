@@ -1,10 +1,14 @@
 # MicroBox
 
-MicroBox is a policy-first sandbox runtime for AI coding workloads.
+![MicroBox](microbox.png)
+
+**Run unmodified code in one of the safest and fastest policy-first sandboxes.**
+
+MicroBox is designed to be the shortest path from "I have code" to "I can run it under explicit policy" without asking you to rewrite, wrap, or adapt the project first. It keeps the workload intact, makes sandbox rules visible, and gives you a clean execution path on Linux, macOS, and Windows.
 
 This README is the canonical project entrypoint.
 
-Current state:
+What ships today:
 - `microbox run <command>` CLI
 - `microbox validate`
 - `microbox bench` with text, JSON, and Markdown reports
@@ -16,6 +20,12 @@ Current state:
 - backend selection: `auto`, `compat`, `secure`
 - cross-platform execution on Linux, macOS, and Windows via the compat backend
 - Linux secure backend with process-group cleanup, best-effort namespaces, Landlock confinement, seccomp hardening, cgroup delegation fallback, and outbound allowlists
+
+Why this matters:
+- **No code changes needed to start**: point MicroBox at a script or repo and run it as-is.
+- **Safest where it matters, fastest where it counts**: use secure Linux enforcement where it exists and compat execution everywhere else.
+- **Policy stays explicit**: filesystem, network, environment, and resource limits live in config, not hidden defaults.
+- **Built for release and demo**: the same binary supports day-to-day execution, validation, and benchmark reporting.
 
 ## Install
 
