@@ -65,6 +65,7 @@ fn build_report(policy_args: &PolicyArgs) -> DoctorReport {
         "policy compiler".to_string(),
         "preset resolution".to_string(),
         "config discovery".to_string(),
+        "persistent workspaces and snapshots".to_string(),
         "cross-platform compat backend".to_string(),
         "Linux outbound allowlists".to_string(),
         "machine-readable doctor output".to_string(),

@@ -25,6 +25,8 @@ pub enum Commands {
     Bench(BenchArgs),
     /// Inspect platform and runtime readiness
     Doctor(DoctorArgs),
+    /// Manage persistent workspaces and snapshots
+    Workspace(WorkspaceArgs),
 }
 
 #[derive(Debug, Args, Clone)]
@@ -120,6 +122,100 @@ pub struct DoctorArgs {
     /// Output format for diagnostics
     #[arg(long, value_enum, default_value_t = DiagnosticFormat::Text)]
     pub format: DiagnosticFormat,
+}
+
+#[derive(Debug, Args, Clone)]
+pub struct WorkspaceArgs {
+    /// Root directory for workspace metadata and snapshots
+    #[arg(long)]
+    pub home: Option<PathBuf>,
+
+    #[command(subcommand)]
+    pub command: WorkspaceCommand,
+}
+
+#[derive(Debug, Subcommand, Clone)]
+pub enum WorkspaceCommand {
+    /// Create a persistent workspace from a source directory
+    Init(WorkspaceInitArgs),
+    /// List known workspaces
+    List(WorkspaceListArgs),
+    /// Run a command inside a workspace root
+    Run(WorkspaceRunArgs),
+    /// Create a snapshot from the current workspace root
+    Snapshot(WorkspaceSnapshotArgs),
+    /// Restore a workspace root from a snapshot
+    Restore(WorkspaceRestoreArgs),
+}
+
+#[derive(Debug, Args, Clone)]
+pub struct WorkspaceInitArgs {
+    /// Workspace name
+    #[arg(long)]
+    pub name: String,
+
+    /// Source directory to import into the workspace
+    #[arg(long)]
+    pub source: Option<PathBuf>,
+
+    /// Output format for workspace metadata
+    #[arg(long, value_enum, default_value_t = WorkspaceFormat::Text)]
+    pub format: WorkspaceFormat,
+}
+
+#[derive(Debug, Args, Clone)]
+pub struct WorkspaceListArgs {
+    /// Output format for workspace metadata
+    #[arg(long, value_enum, default_value_t = WorkspaceFormat::Text)]
+    pub format: WorkspaceFormat,
+}
+
+#[derive(Debug, Args, Clone)]
+pub struct WorkspaceRunArgs {
+    /// Workspace name or identifier
+    #[arg(long)]
+    pub name: String,
+
+    #[command(flatten)]
+    pub policy: PolicyArgs,
+
+    /// Output format for the run report
+    #[arg(long, value_enum, default_value_t = WorkspaceFormat::Text)]
+    pub format: WorkspaceFormat,
+
+    /// Command and arguments, or a single shell string
+    #[arg(value_name = "COMMAND", num_args = 1.., trailing_var_arg = true)]
+    pub command: Vec<String>,
+}
+
+#[derive(Debug, Args, Clone)]
+pub struct WorkspaceSnapshotArgs {
+    /// Workspace name or identifier
+    #[arg(long)]
+    pub name: String,
+
+    /// Snapshot name
+    #[arg(long)]
+    pub snapshot: String,
+
+    /// Output format for workspace metadata
+    #[arg(long, value_enum, default_value_t = WorkspaceFormat::Text)]
+    pub format: WorkspaceFormat,
+}
+
+#[derive(Debug, Args, Clone)]
+pub struct WorkspaceRestoreArgs {
+    /// Workspace name or identifier
+    #[arg(long)]
+    pub name: String,
+
+    /// Snapshot name
+    #[arg(long)]
+    pub snapshot: String,
+
+    /// Output format for workspace metadata
+    #[arg(long, value_enum, default_value_t = WorkspaceFormat::Text)]
+    pub format: WorkspaceFormat,
 }
 
 #[derive(Debug, Args, Clone)]
@@ -228,6 +324,12 @@ pub enum OutputFormat {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 pub enum DiagnosticFormat {
+    Text,
+    Json,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum WorkspaceFormat {
     Text,
     Json,
 }

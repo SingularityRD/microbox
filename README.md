@@ -18,6 +18,8 @@ What ships today:
 - config file parsing
 - `microbox doctor` with policy resolution and readiness reporting
 - machine-readable `doctor` and `validate` output for agents and automation
+- persistent workspace management with snapshots and restores
+- `microbox workspace` for workspace lifecycle management
 - backend selection: `auto`, `compat`, `secure`
 - cross-platform execution on Linux, macOS, and Windows via the compat backend
 - Linux secure backend with process-group cleanup, best-effort namespaces, Landlock confinement, seccomp hardening, cgroup delegation fallback, and outbound allowlists
@@ -78,6 +80,26 @@ What the `ai-agent` preset gives you:
 - a safe default workspace policy for coding agents
 
 If you are wiring MicroBox into an agent system, start with `doctor --format json`, then `validate --format json`, then run the actual command under `--preset ai-agent`.
+
+## Persistent Workspaces
+
+MicroBox can keep a project workspace around, run commands inside it, and restore it from snapshots without Docker or Podman.
+
+```bash
+cargo run -- workspace init --name demo --source .
+cargo run -- workspace list --format json
+cargo run -- workspace run --name demo --preset ai-agent python examples/hello.py
+cargo run -- workspace snapshot --name demo --snapshot pre-change
+cargo run -- workspace restore --name demo --snapshot pre-change
+```
+
+By default, workspaces live under `MICROBOX_HOME` or `~/.microbox`:
+- `workspace init` imports a source directory into a managed workspace root
+- `workspace run` executes under the workspace root with the same policy engine
+- `workspace snapshot` creates a restore point
+- `workspace restore` resets the workspace root from a saved snapshot
+
+This is the first step toward a Daytona-style control plane while keeping the core runtime native and Docker-free.
 
 ## Philosophy
 
@@ -210,15 +232,20 @@ Benchmark reports:
 - Measures startup overhead, shell roundtrips, and workspace writes
 - Can also compare against peer sandboxes and baseline reports
 
+`microbox workspace`
+- Manages persistent workspaces with import, run, snapshot, and restore flows
+- Use `--format json` when an agent or CI system needs structured output
+
 ## Release Workflow
 
 Open-source release flow:
 
 1. `cargo run -- doctor`
 2. `cargo run -- validate`
-3. `cargo run -- bench --profile all --iterations 100 --warmups 0 --format markdown --output microbox-benchmark.md echo benchmark`
-4. `cargo build --release`
-5. Tag a release as `v*` to produce OS-specific archives and SHA-256 checksums
+3. `cargo run -- workspace init --name demo --source .`
+4. `cargo run -- bench --profile all --iterations 100 --warmups 0 --format markdown --output microbox-benchmark.md echo benchmark`
+5. `cargo build --release`
+6. Tag a release as `v*` to produce OS-specific archives and SHA-256 checksums
 
 ## Benchmark Leaderboard
 

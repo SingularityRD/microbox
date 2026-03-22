@@ -4,6 +4,7 @@ mod config;
 mod doctor;
 mod runner;
 mod validate;
+mod workspace;
 
 use args::{Cli, Commands};
 use clap::Parser;
@@ -37,6 +38,13 @@ fn main() {
             }
         },
         Commands::Doctor(args) => match doctor::run(args) {
+            Ok(code) => code,
+            Err(error) => {
+                eprintln!("microbox: {}", error);
+                1
+            }
+        },
+        Commands::Workspace(args) => match workspace::run(args) {
             Ok(code) => code,
             Err(error) => {
                 eprintln!("microbox: {}", error);
